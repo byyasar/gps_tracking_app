@@ -21,6 +21,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
     _loadRoutes();
   }
 
+  /// Kayıtlı rotaları yükler.
   Future<void> _loadRoutes() async {
     final routes = await _gpxService.getSavedRoutes();
     setState(() {
@@ -29,31 +30,33 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
     });
   }
 
+  /// Seçilen rota dosyasını siler.
   Future<void> _deleteRoute(File file) async {
     try {
       await file.delete();
       _loadRoutes();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Route deleted')),
+          const SnackBar(content: Text('Rota silindi')),
         );
       }
     } catch (e) {
       // ignore: avoid_print
-      print('Error deleting file: $e');
+      print('Dosya silme hatası: $e');
     }
   }
 
+  /// Widget ağacını oluşturur.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Saved Routes'),
+        title: const Text('Kayıtlı Rotalar'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _routes.isEmpty
-              ? const Center(child: Text('No saved routes found'))
+              ? const Center(child: Text('Kayıtlı rota bulunamadı'))
               : ListView.builder(
                   itemCount: _routes.length,
                   itemBuilder: (context, index) {
@@ -62,9 +65,9 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
                     return ListTile(
                       leading: const Icon(Icons.map),
                       title: Text(fileName),
-                      subtitle: Text('Size: ${(file.lengthSync() / 1024).toStringAsFixed(1)} KB'),
+                      subtitle: Text('Boyut: ${(file.lengthSync() / 1024).toStringAsFixed(1)} KB'),
                       onTap: () {
-                        // Return the file back to the map screen
+                        // Dosyayı harita ekranına geri döndür
                         Navigator.pop(context, file);
                       },
                       trailing: IconButton(

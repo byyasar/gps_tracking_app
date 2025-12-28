@@ -36,19 +36,21 @@ class _MapScreenState extends State<MapScreen> {
     _determinePosition();
   }
 
+  /// Kaynakları serbest bırakır.
   @override
   void dispose() {
     _locationTimer?.cancel();
     super.dispose();
   }
 
+  /// Canlı konum takibini açar veya kapatır.
   void _toggleLiveLocation(bool value) {
     setState(() {
       _isLiveLocationEnabled = value;
     });
 
     if (value) {
-      _determinePosition(); // Initial update
+      _determinePosition(); // İlk güncelleme
       _locationTimer = Timer.periodic(const Duration(seconds: 10), (_) {
         _determinePosition();
       });
@@ -58,13 +60,14 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  /// Mevcut konumu belirler ve izinleri kontrol eder.
   Future<void> _determinePosition() async {
     bool serviceEnabled;
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      _showSnackBar('Location services are disabled.');
+      _showSnackBar('Konum servisleri kapalı.');
       return;
     }
 
@@ -72,13 +75,13 @@ class _MapScreenState extends State<MapScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        _showSnackBar('Location permissions are denied');
+        _showSnackBar('Konum izni reddedildi');
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      _showSnackBar('Location permissions are permanently denied.');
+      _showSnackBar('Konum izni kalıcı olarak reddedildi.');
       return;
     }
 
@@ -87,22 +90,22 @@ class _MapScreenState extends State<MapScreen> {
       _currentLocation = LatLng(position.latitude, position.longitude);
     });
     
-    // If live location is enabled (and timer is running), update map center but keep zoom
-    // If it's the first load (e.g. no GPX), we might want to default to something, 
-    // but the user specific request is "gps konumu değiştiğinde zoom değişmesin".
-    // So we use current zoom.
+    // Canlı konum açıksa (ve zamanlayıcı çalışıyorsa), harita merkezini güncelle ama yakınlaştırmayı koru
+    // İlk yükleme ise (örn. GPX yoksa), varsayılan bir yere gitmek isteyebiliriz,
+    // ancak kullanıcı isteği "gps konumu değiştiğinde zoom değişmesin".
+    // Bu yüzden mevcut yakınlaştırmayı kullanıyoruz.
     
     if (_isRecording && _currentLocation != null) {
       _recordedPath.add(_currentLocation!);
-      // Update the visual route on map in real-time?
-      // For now, let's keep _routePoints strictly for "loaded/viewed" route
-      // and maybe use a secondary polyline for "recording" path?
-      // Or just append to _routePoints?
-      // Appending to _routePoints gives immediate feedback.
+      // Rotayı haritada gerçek zamanlı güncelle?
+      // Şimdilik _routePoints'i sadece "yüklenen/görüntülenen" rota için tutalım
+      // ve belki "kaydedilen" yol için ikincil bir çoklu çizgi kullanalım?
+      // Veya sadece _routePoints'e ekleyelim?
+      // _routePoints'e eklemek anında geri bildirim verir.
        if (!_routePoints.contains(_currentLocation!)) {
           setState(() {
             _routePoints.add(_currentLocation!);
-            // Update distance in real-time
+            // Mesafeyi gerçek zamanlı güncelle
             if (_routePoints.length > 1) {
               _totalDistance += const Distance().as(LengthUnit.Meter, _routePoints[_routePoints.length - 2], _currentLocation!);
             }
@@ -111,18 +114,19 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     if (_routePoints.isEmpty || _isLiveLocationEnabled) {
-       // If manual center button was pressed, or live toggle is on, follow user.
-       // However, _determinePosition is called by both.
+       // Manuel merkezleme düğmesine basıldıysa veya canlı geçiş açıksa, kullanıcıyı takip et.
+       // Ancak, _determinePosition her ikisi tarafından da çağrılır.
        
-       // CAUTION: The user only said "when gps changes, zoom shouldn't change".
-       // They imply they want the map to follow them (change center) but keep zoom.
-       // So we use _mapController.camera.zoom.
+       // DİKKAT: Kullanıcı sadece "gps değiştiğinde zoom değişmesin" dedi.
+       // Haritanın onları takip etmesini (merkezi değiştirmesini) ama yakınlaştırmayı korumasını ima ediyorlar.
+       // Bu yüzden _mapController.camera.zoom kullanıyoruz.
        
-       // Only move if we are in "following" mode (implied by live location enabled or initial load)
+       // Sadece "takip etme" modundaysak taşı (canlı konum etkin veya ilk yükleme ile ima edilir)
         _mapController.move(_currentLocation!, _mapController.camera.zoom);
     }
   }
 
+  /// GPX dosyasını seçer ve yükler.
   Future<void> _pickAndLoadGpx() async {
     setState(() {
       _isLoading = true;
@@ -130,7 +134,7 @@ class _MapScreenState extends State<MapScreen> {
 
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any, // Using any for broader compatibility, ideally 'custom' with extensions
+        type: FileType.any, // Daha geniş uyumluluk için 'any' kullanılıyor, ideal olarak uzantılarla 'custom'
       );
 
       if (result != null) {
@@ -145,11 +149,11 @@ class _MapScreenState extends State<MapScreen> {
             });
             _centerMapOnRoute(points);
           } else {
-          _showSnackBar('No valid track points found in GPX file.');
+          _showSnackBar('GPX dosyasında geçerli iz noktası bulunamadı.');
         }
       }
     } catch (e) {
-      _showSnackBar('Error loading GPX file: $e');
+      _showSnackBar('GPX dosyası yüklenirken hata: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -157,9 +161,10 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  /// Rota kaydını başlatır veya durdurur.
   Future<void> _toggleRecording() async {
     if (_isRecording) {
-      // Stop recording
+      // Kaydı durdur
       setState(() {
         _isRecording = false;
         _isLoading = true;
@@ -169,32 +174,33 @@ class _MapScreenState extends State<MapScreen> {
       
       setState(() {
         _isLoading = false;
-        _recordedPath.clear(); // Clear recorded path after saving (or keep it displayed?)
-        // Let's clear the recorded path for now, as it's saved.
-        // Or we could keep _routePoints populated with it?
-        // User flow: Record -> Stop -> Saved.
-        // Maybe we want to see what we just recorded.
-        // For now, let's just notify.
+        _recordedPath.clear(); // Kaydedildikten sonra kaydedilen yolu temizle (ya da göster?)
+        // Şimdilik kaydedilen yolu temizleyelim, çünkü kaydedildi.
+        // Veya _routePoints'i bununla dolu tutabiliriz?
+        // Kullanıcı akışı: Kaydet -> Durdur -> Kaydedildi.
+        // Belki az önce ne kaydettiğimizi görmek isteriz.
+        // Şimdilik sadece bildirelim.
       });
 
       if (path != null) {
-        _showSnackBar('Route saved to $path');
+        _showSnackBar('Rota kaydedildi: $path');
       } else {
-        _showSnackBar('Failed to save route (no points recorded?)');
+        _showSnackBar('Rota kaydedilemedi (nokta kaydedilmedi mi?)');
       }
     } else {
-      // Start recording
+      // Kaydı başlat
       setState(() {
         _isRecording = true;
         _recordedPath = [];
-        // Optional: clear existing route on map when starting new recording?
+        // İsteğe bağlı: yeni kayıt başlarken haritadaki mevcut rotayı temizle?
         // _routePoints = []; 
         _totalDistance = 0.0;
       });
-      _showSnackBar('Recording started...');
+      _showSnackBar('Kayıt başladı...');
     }
   }
 
+  /// Kayıtlı rotalar ekranını açar.
   Future<void> _openSavedRoutes() async {
     final File? selectedFile = await Navigator.push(
       context,
@@ -202,7 +208,7 @@ class _MapScreenState extends State<MapScreen> {
     );
 
     if (selectedFile != null) {
-      // Load the selected file
+      // Seçilen dosyayı yükle
       setState(() {
         _isLoading = true;
       });
@@ -217,7 +223,7 @@ class _MapScreenState extends State<MapScreen> {
            _centerMapOnRoute(points);
         }
       } catch (e) {
-        _showSnackBar('Error loading route: $e');
+        _showSnackBar('Rota yüklenirken hata: $e');
       } finally {
         setState(() {
           _isLoading = false;
@@ -226,10 +232,11 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  /// Haritayı rota üzerine odaklar.
   void _centerMapOnRoute(List<LatLng> points) {
     if (points.isEmpty) return;
     
-    // Simple bounding box calculation
+    // Basit sınır kutusu hesaplaması
     double minLat = points.first.latitude;
     double maxLat = points.first.latitude;
     double minLon = points.first.longitude;
@@ -244,24 +251,26 @@ class _MapScreenState extends State<MapScreen> {
 
     LatLng center = LatLng((minLat + maxLat) / 2, (minLon + maxLon) / 2);
     
-    // User requested to preserve zoom level when loading GPX.
-    // So we move the center but keep the current zoom.
+    // Kullanıcı GPX yüklerken yakınlaştırma seviyesini korumayı istedi.
+    // Bu yüzden merkezi taşıyoruz ama mevcut yakınlaştırmayı koruyoruz.
     _mapController.move(center, _mapController.camera.zoom);
   }
 
+  /// Kullanıcıya bildirim mesajı gösterir.
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Ekranı oluşturur.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GPX Visualizer'),
+        title: const Text('GPX Görselleştirici'),
         actions: [
           Row(
             children: [
-              const Text("Live GPS", style: TextStyle(fontSize: 12)),
+              const Text("Canlı GPS", style: TextStyle(fontSize: 12)),
               Switch(
                 value: _isLiveLocationEnabled,
                 onChanged: _toggleLiveLocation,
@@ -277,7 +286,7 @@ class _MapScreenState extends State<MapScreen> {
           FlutterMap(
             mapController: _mapController,
             options: const MapOptions(
-              initialCenter: LatLng(41.0082, 28.9784), // Istanbul default
+              initialCenter: LatLng(41.0082, 28.9784), // İstanbul varsayılan
               initialZoom: 10.0,
             ),
             children: [
@@ -354,7 +363,7 @@ class _MapScreenState extends State<MapScreen> {
               final camera = _mapController.camera;
               _mapController.move(camera.center, camera.zoom + 1);
             },
-            tooltip: 'Zoom In',
+            tooltip: 'Yakınlaş',
             child: const Icon(Icons.add),
           ),
           const SizedBox(height: 8),
@@ -364,7 +373,7 @@ class _MapScreenState extends State<MapScreen> {
               final camera = _mapController.camera;
               _mapController.move(camera.center, camera.zoom - 1);
             },
-            tooltip: 'Zoom Out',
+            tooltip: 'Uzaklaş',
             child: const Icon(Icons.remove),
           ),
           const SizedBox(height: 8),
@@ -377,14 +386,14 @@ class _MapScreenState extends State<MapScreen> {
                 _determinePosition();
               }
             },
-            tooltip: 'Center on Location',
+            tooltip: 'Konuma Odaklan',
             child: const Icon(Icons.my_location),
           ),
           const SizedBox(height: 16),
           FloatingActionButton(
             heroTag: "open_file",
             onPressed: () {
-              // Show modal bottom sheet or simple dialog to choose between File Picker and Saved Routes
+              // Gösterilecek alt sayfa veya dosya seçici ile kaydedilmiş rotalar arasında seçim yapma penceresi
               showModalBottomSheet(
                 context: context,
                 builder: (context) {
@@ -392,7 +401,7 @@ class _MapScreenState extends State<MapScreen> {
                     children: [
                       ListTile(
                         leading: const Icon(Icons.folder_open),
-                        title: const Text('Open GPX File'),
+                        title: const Text('GPX Dosyası Aç'),
                         onTap: () {
                           Navigator.pop(context);
                           _pickAndLoadGpx();
@@ -400,7 +409,7 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                       ListTile(
                         leading: const Icon(Icons.list),
-                        title: const Text('Saved Routes'),
+                        title: const Text('Kayıtlı Rotalar'),
                         onTap: () {
                           Navigator.pop(context);
                           _openSavedRoutes();
@@ -411,7 +420,7 @@ class _MapScreenState extends State<MapScreen> {
                 },
               );
             },
-            tooltip: 'Open',
+            tooltip: 'Aç',
             child: const Icon(Icons.folder),
           ),
           const SizedBox(height: 16),
@@ -419,7 +428,7 @@ class _MapScreenState extends State<MapScreen> {
             heroTag: "record_route",
             onPressed: _toggleRecording,
             backgroundColor: _isRecording ? Colors.red : null,
-            tooltip: _isRecording ? 'Stop Recording' : 'Start Recording',
+            tooltip: _isRecording ? 'Kaydı Durdur' : 'Kaydı Başlat',
             child: Icon(_isRecording ? Icons.stop : Icons.fiber_manual_record),
           ),
         ],

@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 
 class GpxService {
-  /// Parses GPX XML string and returns a list of LatLng points for the track.
+  /// GPX XML dizesini ayrıştırır ve iz için LatLng noktalarının bir listesini döndürür.
   List<LatLng> parseGpx(String gpxString) {
     try {
       final xmlGpx = GpxReader().fromString(gpxString);
@@ -25,12 +25,12 @@ class GpxService {
       return points;
     } catch (e) {
       // ignore: avoid_print
-      print('Error parsing GPX: $e');
+      print('GPX ayrıştırma hatası: $e');
       return [];
     }
   }
 
-  /// Saves a list of points as a GPX file
+  /// Nokta listesini bir GPX dosyası olarak kaydeder.
   Future<String?> saveRoute(List<LatLng> points) async {
     if (points.isEmpty) return null;
 
@@ -57,12 +57,12 @@ class GpxService {
       await file.writeAsString(gpxString);
       return file.path;
     } catch (e) {
-      print('Error saving GPX: $e');
+      print('GPX kaydetme hatası: $e');
       return null;
     }
   }
 
-  /// Returns a list of saved GPX files
+  /// Kaydedilen GPX dosyalarının bir listesini döndürür.
   Future<List<File>> getSavedRoutes() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -72,15 +72,15 @@ class GpxService {
           .whereType<File>()
           .where((file) => file.path.endsWith('.gpx'))
           .toList()
-          ..sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync())); // Newest first
+          ..sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync())); // En yeni en üstte
     } catch (e) {
-      print('Error listing files: $e');
+      print('Dosya listeleme hatası: $e');
       return [];
     }
   }
 
-  /// Calculates the total distance of a route in meters
-  // Distance calculation added
+  /// Rotanın toplam mesafesini metre cinsinden hesaplar.
+  // Mesafe hesaplama eklendi
   double calculateTotalDistance(List<LatLng> points) {
     if (points.length < 2) return 0.0;
     

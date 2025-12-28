@@ -8,10 +8,11 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  /// Uygulamanın kök widget'ını oluşturur.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'GPX Visualizer',
+      title: 'GPX Görselleştirici',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,

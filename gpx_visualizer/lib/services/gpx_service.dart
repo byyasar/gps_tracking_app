@@ -78,4 +78,18 @@ class GpxService {
       return [];
     }
   }
+
+  /// Calculates the total distance of a route in meters
+  double calculateTotalDistance(List<LatLng> points) {
+    if (points.length < 2) return 0.0;
+    
+    final Distance distance = Distance();
+    double totalDistance = 0.0;
+
+    for (int i = 0; i < points.length - 1; i++) {
+      totalDistance += distance.as(LengthUnit.Meter, points[i], points[i + 1]);
+    }
+
+    return totalDistance;
+  }
 }

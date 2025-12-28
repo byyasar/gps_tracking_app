@@ -19,6 +19,7 @@ class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   List<LatLng> _routePoints = [];
   final GpxService _gpxService = GpxService();
+  double _totalDistance = 0.0;
 
   bool _isLoading = false;
   LatLng? _currentLocation;
@@ -97,11 +98,15 @@ class _MapScreenState extends State<MapScreen> {
       // and maybe use a secondary polyline for "recording" path?
       // Or just append to _routePoints?
       // Appending to _routePoints gives immediate feedback.
-      if (!_routePoints.contains(_currentLocation!)) {
-         setState(() {
-           _routePoints.add(_currentLocation!);
-         });
-      }
+       if (!_routePoints.contains(_currentLocation!)) {
+          setState(() {
+            _routePoints.add(_currentLocation!);
+            // Update distance in real-time
+            if (_routePoints.length > 1) {
+              _totalDistance += const Distance().as(LengthUnit.Meter, _routePoints[_routePoints.length - 2], _currentLocation!);
+            }
+          });
+       }
     }
 
     if (_routePoints.isEmpty || _isLiveLocationEnabled) {
@@ -132,12 +137,13 @@ class _MapScreenState extends State<MapScreen> {
         String gpxString = await file.readAsString();
         List<LatLng> points = _gpxService.parseGpx(gpxString);
 
-        if (points.isNotEmpty) {
-          setState(() {
-            _routePoints = points;
-          });
-          _centerMapOnRoute(points);
-        } else {
+          if (points.isNotEmpty) {
+            setState(() {
+              _routePoints = points;
+              _totalDistance = _gpxService.calculateTotalDistance(points);
+            });
+            _centerMapOnRoute(points);
+          } else {
           _showSnackBar('No valid track points found in GPX file.');
         }
       }
@@ -182,6 +188,7 @@ class _MapScreenState extends State<MapScreen> {
         _recordedPath = [];
         // Optional: clear existing route on map when starting new recording?
         // _routePoints = []; 
+        _totalDistance = 0.0;
       });
       _showSnackBar('Recording started...');
     }
@@ -204,6 +211,7 @@ class _MapScreenState extends State<MapScreen> {
         if (points.isNotEmpty) {
            setState(() {
              _routePoints = points;
+             _totalDistance = _gpxService.calculateTotalDistance(points);
            });
            _centerMapOnRoute(points);
         }
@@ -302,6 +310,33 @@ class _MapScreenState extends State<MapScreen> {
                   ],
                 ),
             ],
+          ),
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: Container(
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              child: Text(
+                _totalDistance >= 1000
+                    ? '${(_totalDistance / 1000).toStringAsFixed(2)} km'
+                    : '${_totalDistance.toStringAsFixed(0)} m',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+            ),
           ),
           if (_isLoading)
             const Center(

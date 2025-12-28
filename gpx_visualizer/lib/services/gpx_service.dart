@@ -80,6 +80,7 @@ class GpxService {
   }
 
   /// Calculates the total distance of a route in meters
+  // Distance calculation added
   double calculateTotalDistance(List<LatLng> points) {
     if (points.length < 2) return 0.0;
     

@@ -19,6 +19,7 @@ class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   List<LatLng> _routePoints = [];
   final GpxService _gpxService = GpxService();
+  // Distance calculation added
   double _totalDistance = 0.0;
 
   bool _isLoading = false;
